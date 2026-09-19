@@ -1,0 +1,30 @@
+{
+  "name": "jev-migrate",
+  "version": "0.1.0",
+  "description": "Scan codebase for LLM routing/classification/scoring/boolean calls and suggest TypeSafe Jev conversions",
+  "main": "dist/cli.js",
+  "bin": {
+    "jev-migrate": "dist/cli.js"
+  },
+  "type": "commonjs",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "ts-node test/run.ts",
+    "start": "ts-node src/cli.ts"
+  },
+  "keywords": ["llm", "openai", "anthropic", "migration", "cli"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^12.1.0",
+    "chalk": "^4.1.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.4",
+    "ts-node": "^10.9.2",
+    "@types/node": "^20.14.9"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
