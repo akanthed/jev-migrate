@@ -164,7 +164,63 @@ Would love feedback on what decision patterns it's missing.
 
 ---
 
-## 5. Directory / discoverability submissions
+## 5. Discord — TypeSafe AI server
+
+This is an **owned-adjacent channel** — your existing community, warmer audience than cold Reddit/HN, so it can be more casual and more technical/detailed than the public posts above. Post in whatever channel fits (`#showcase`, `#projects`, `#announcements` — pick the one people actually check).
+
+```
+🔍 **jev-migrate** — find the LLM calls in your codebase that don't need an LLM
+
+Built this after noticing the same pattern everywhere: an OpenAI/Anthropic
+call with `temperature: 0`, a tiny `max_tokens`, and a prompt that's really
+just "pick 1 of 3 categories" or "yes/no?" That's a decision, not
+generation — and it's paying full LLM latency + cost for something a rule
+can do instantly.
+
+**What it does:** scans a TS/JS/Python repo, finds calls shaped like
+routing / classification / scoring / boolean checks, scores confidence per
+detection, shows you what converting to a rules-based `Jev.choice` /
+`Jev.score` / `Jev.noul` call would look like.
+
+**Didn't want to ship another tool with made-up "99% cheaper" numbers**, so
+I benchmarked it against the live OpenAI API instead of just asserting it:
+
+> Real gpt-4o-mini call (routing decision): 2641ms, $0.000008
+> Rules-based equivalent, same input: 0.212ms, $0
+> **Same answer, both times.**
+
+Ran across 3 decision types — routing, classification, boolean fraud check.
+Local rule matched the LLM's answer on all 3. Overall: **3,405x faster**,
+**~$0.000027 → $0** per call. Benchmark script's in the repo, runs against
+your own OpenAI key so you can verify it yourself, not just trust my numbers.
+
+Heads up on limits: it's regex/keyword detection, not a full AST parse, so
+expect occasional false positives on unusually-worded prompts. `convert`
+gives you a before/after scaffold, not an automatic rewrite — porting the
+real option list and getting the accuracy right still needs a human, that's
+the actual migration work.
+
+```bash
+npm install -g jev-migrate
+jev-migrate scan ./your-project
+```
+
+📦 npm: https://www.npmjs.com/package/jev-migrate
+💻 GitHub: https://github.com/akanthed/jev-migrate
+
+Would genuinely love feedback from this crowd specifically — you all think
+about type safety and LLM output structure more than most, curious what
+decision patterns you'd want it to catch that it currently misses. 🙏
+```
+
+**Posting notes:**
+- This audience will read the benchmark script itself if you link it — don't oversimplify the caveat about the local rule being hand-written per test case, they'll ask.
+- If the server has a bot-command or thread convention for project shares, use it instead of a flat message so it doesn't get buried.
+- Good place to ask directly: "does this fit as a companion tool to Jev, or should detection logic live inside Jev itself?" — that's a real product question this audience can actually answer.
+
+---
+
+## 6. Directory / discoverability submissions
 
 Low-effort, compounding backlinks + discovery surface. Do these once the repo is public and published to npm.
 
