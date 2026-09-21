@@ -25,7 +25,7 @@ const response = await openai.chat.completions.create({
 
 ## Why this matters (measured, not guessed)
 
-Most tools like this just assert "99% cheaper, 100x faster" as marketing copy. We measured it instead — [`test/benchmark.ts`](test/benchmark.ts) fires the exact prompts from our test fixtures at the real OpenAI API (`gpt-4o-mini`, `temperature: 0`) and times a rules-based local equivalent doing the same job.
+Most tools like this just assert "99% cheaper, 100x faster" as marketing copy. We measured it instead — [`test/benchmark.ts`](test/benchmark.ts) fires the exact prompts from our test fixtures at the real OpenAI API (`gpt-4o-mini`, `temperature: 0`) and times a rules-based local equivalent doing the same job. The benchmark now covers all four detected patterns (routing, classification, boolean, and scoring) — the table below is from the 3-case run and predates the scoring case; rerun the command below for a fresh 4-case measurement.
 
 **Real run, 2026-09-21, 3 cases:**
 
@@ -66,13 +66,15 @@ OPENAI_API_KEY=sk-... npx ts-node test/benchmark.ts
 
 ```mermaid
 flowchart LR
-    A["LLM call found\n(openai / anthropic / groq)"] --> B{Keyword + signal match}
+    A["LLM call found\n(SDK call or raw HTTP\nto a known LLM API host)"] --> B{Keyword + signal match}
     B -->|route, dispatch, assign,\nqueue, department, team\n+ temperature: 0| C["routing\n→ Jev.choice"]
     B -->|classify, categorize,\ndecide, determine\n+ JSON.parse| D["classification\n→ Jev.choice"]
     B -->|score, rating, rank,\npriority, urgency\n+ 1-5 / 0-100 scale| E["scoring\n→ Jev.score"]
     B -->|is_ / should_ / has_ /\ncan_ / needs_\n+ yes/no, true/false| F["boolean\n→ Jev.noul"]
     B -->|no keyword/signal match| G["ignored\n(free-form generation, etc)"]
 ```
+
+**Providers matched:** OpenAI (incl. Azure OpenAI), Anthropic, Google Gemini, Groq, Cohere, Mistral, Ollama, OpenRouter, and Together/other OpenAI-compatible SDKs — via their native SDK call shapes (`chat.completions.create`, `messages.create`, `generateContent`, `chat.complete`, `co.chat`, `ollama.chat`, LangChain-style `.invoke`/`.predict`, etc.) plus raw `fetch`/`axios`/`requests`/`httpx` calls that hit a known LLM API host directly.
 
 | Pattern | Trigger keywords | Confidence-boosting signal | Converts to |
 |---|---|---|---|
@@ -82,6 +84,8 @@ flowchart LR
 | **Boolean** | `is_`, `should_`, `has_`, `can_`, `needs_` | yes/no or true/false phrasing | `Jev.noul` |
 
 Works across **TypeScript, JavaScript, and Python** — including old-style `openai.ChatCompletion.create(...)` and Python kwargs (`temperature=0` as well as `temperature: 0`).
+
+Call-shape matching is intentionally broad (it also catches generic `.chat`/`.generate`/`.invoke`/`.predict`/`.complete` methods used by newer or custom SDK wrappers) — the keyword + signal gate above is what keeps that from flooding results with false positives, not the call-shape regex.
 
 ## Confidence scoring
 
@@ -162,7 +166,7 @@ flowchart TD
 - Detection is regex/keyword-based, not an AST parse — it can miss unusually-worded prompts and, rarely, false-positive on a comment that happens to contain a trigger word.
 - `convert` gives a scaffold, not a verified rewrite. You still need to port the real option list, scale, and prompt logic.
 - The benchmark's "local rule" is hand-written per test case to prove the latency/cost shape — it is not the actual Jev SDK, since accuracy on *your* decision boundary depends entirely on how well you encode the same logic the LLM was implicitly doing.
-- Only OpenAI, Anthropic, and Groq call shapes are matched today.
+- Call-shape matching for `.chat` / `.generate` / `.invoke` / `.predict` / `.complete` is generic by design to cover more SDKs and wrappers — it relies on the keyword + signal gate (not the method name) to avoid false positives, so an unusual non-LLM `.chat(...)`/`.generate(...)` call sitting next to matching keywords could, in theory, be misflagged.
 
 ## Test suite
 
@@ -170,7 +174,7 @@ flowchart TD
 npm test
 ```
 
-7 fixtures, covering all 4 patterns across TS and Python, plus a false-positive fixture that must produce **zero** detections. All currently pass.
+12 fixtures, covering all 4 patterns across TS and Python and across OpenAI, Anthropic, Gemini, Groq, Cohere, Mistral, Ollama, and raw-HTTP call shapes, plus a false-positive fixture that must produce **zero** detections. All currently pass.
 
 ## License
 

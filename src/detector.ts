@@ -12,7 +12,14 @@ export interface Detection {
   provider: string;
 }
 
-const CALL_PATTERN = /(\w+)\.(chat\.completions\.create|messages\.create|ChatCompletion\.create)\s*\(/g;
+// SDK method calls covering OpenAI, Azure OpenAI, Groq, Together, OpenRouter (openai-compatible),
+// Anthropic, Google Gemini, Cohere, Mistral, Ollama, and common LangChain wrappers.
+const CALL_PATTERN =
+  /(\w+)\.(chat\.completions\.create|completions\.create|ChatCompletion\.create|Completion\.create|messages\.create|messages\.stream|generateContent|generate_content|chat\.complete|chat_stream|chat|generate\b|invoke|predict|complete\b)\s*\(/g;
+
+// Raw HTTP calls (fetch/axios/requests/httpx) hitting a known LLM API host.
+const HTTP_CALL_PATTERN =
+  /\b(fetch|axios(?:\.(?:get|post))?|requests\.(?:get|post)|httpx\.(?:get|post|AsyncClient\(\)\.post))\s*\(\s*[`'"][^`'"]*\b(api\.openai\.com|api\.anthropic\.com|generativelanguage\.googleapis\.com|api\.cohere\.ai|api\.mistral\.ai|api\.groq\.com|openrouter\.ai|localhost:11434|127\.0\.0\.1:11434)\b/g;
 
 const ROUTING_KEYWORDS = /\b(rout(?:e|ing|er)|dispatch(?:ing)?|assign(?:ed|ing|ment)?|queue(?:d|ing)?|department|team)\b/i;
 const CLASSIFICATION_KEYWORDS = /\b(classify|classif(?:ication|ies|ied)|categorize|decide|decision|determine)\b/i;
@@ -98,41 +105,80 @@ function scoreCategory(contextBefore: string, contextText: string): ScoredCatego
   return best;
 }
 
+const HOST_PROVIDER: Record<string, string> = {
+  "api.openai.com": "openai",
+  "api.anthropic.com": "anthropic",
+  "generativelanguage.googleapis.com": "gemini",
+  "api.cohere.ai": "cohere",
+  "api.mistral.ai": "mistral",
+  "api.groq.com": "groq",
+  "openrouter.ai": "openrouter",
+  "localhost:11434": "ollama",
+  "127.0.0.1:11434": "ollama",
+};
+
+function evaluateCallSite(
+  file: ScannedFile,
+  content: string,
+  callStart: number,
+  openParenIndex: number,
+  provider: string,
+  seenLines: Set<number>,
+  detections: Detection[]
+) {
+  const blockEnd = findBlockEnd(content, openParenIndex);
+
+  const beforeStart = Math.max(0, callStart - 150);
+  const contextBefore = content.slice(beforeStart, callStart);
+  const afterEnd = Math.min(content.length, blockEnd + 200);
+  const contextText = content.slice(callStart, afterEnd);
+
+  const category = scoreCategory(contextBefore, contextText);
+  if (!category) return;
+
+  const line = lineNumberAt(content, callStart);
+  if (seenLines.has(line)) return;
+  seenLines.add(line);
+
+  const snippetLine = file.lines[line - 1]?.trim() ?? "";
+
+  detections.push({
+    file: file.path,
+    line,
+    type: category.type,
+    jevTarget: category.jevTarget,
+    confidence: category.confidence,
+    snippet: snippetLine,
+    provider,
+  });
+}
+
 export function detectFile(file: ScannedFile): Detection[] {
   const detections: Detection[] = [];
   const content = file.content;
+  const seenLines = new Set<number>();
   let match: RegExpExecArray | null;
-  CALL_PATTERN.lastIndex = 0;
 
+  CALL_PATTERN.lastIndex = 0;
   while ((match = CALL_PATTERN.exec(content)) !== null) {
     const provider = match[1];
     const callStart = match.index;
     const openParenIndex = content.indexOf("(", callStart);
     if (openParenIndex === -1) continue;
-    const blockEnd = findBlockEnd(content, openParenIndex);
-
-    const beforeStart = Math.max(0, callStart - 150);
-    const contextBefore = content.slice(beforeStart, callStart);
-    const afterEnd = Math.min(content.length, blockEnd + 200);
-    const contextText = content.slice(callStart, afterEnd);
-
-    const category = scoreCategory(contextBefore, contextText);
-    if (!category) continue;
-
-    const line = lineNumberAt(content, callStart);
-    const snippetLine = file.lines[line - 1]?.trim() ?? "";
-
-    detections.push({
-      file: file.path,
-      line,
-      type: category.type,
-      jevTarget: category.jevTarget,
-      confidence: category.confidence,
-      snippet: snippetLine,
-      provider,
-    });
+    evaluateCallSite(file, content, callStart, openParenIndex, provider, seenLines, detections);
   }
 
+  HTTP_CALL_PATTERN.lastIndex = 0;
+  while ((match = HTTP_CALL_PATTERN.exec(content)) !== null) {
+    const host = match[2];
+    const provider = HOST_PROVIDER[host] ?? host;
+    const callStart = match.index;
+    const openParenIndex = content.indexOf("(", callStart);
+    if (openParenIndex === -1) continue;
+    evaluateCallSite(file, content, callStart, openParenIndex, provider, seenLines, detections);
+  }
+
+  detections.sort((a, b) => a.line - b.line);
   return detections;
 }
 

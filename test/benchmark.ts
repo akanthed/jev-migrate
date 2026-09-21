@@ -12,11 +12,11 @@ const OUTPUT_COST_PER_1M = 0.6;
 
 interface Case {
   name: string;
-  type: "routing" | "classification" | "boolean";
+  type: "routing" | "classification" | "boolean" | "scoring";
   system: string;
   user: string;
   maxTokens: number;
-  // The rules-based equivalent a Jev.choice/Jev.noul call would run locally.
+  // The rules-based equivalent a Jev.choice/Jev.score/Jev.noul call would run locally.
   localEquivalent: (input: string) => string;
 }
 
@@ -56,6 +56,19 @@ const CASES: Case[] = [
       return /2 ?min|2:0\d|simultaneous|different (countries|cities)/i.test(input) || /Lagos|New York/.test(input)
         ? "yes"
         : "no";
+    },
+  },
+  {
+    name: "scoring-system",
+    type: "scoring",
+    system: "Rate the urgency of this support message on a scale from 1 to 5. Respond with only the number.",
+    user: "Our production database is down and customers can't check out.",
+    maxTokens: 5,
+    localEquivalent: (input) => {
+      const lower = input.toLowerCase();
+      if (/down|outage|can'?t (check ?out|login)|production/.test(lower)) return "5";
+      if (/slow|degraded|delay/.test(lower)) return "3";
+      return "1";
     },
   },
 ];
@@ -134,7 +147,7 @@ async function main() {
   }
 
   const overallSpeedup = totalLlmMs / Math.max(totalLocalMs, 0.001);
-  console.log("=== Totals across 3 cases ===");
+  console.log(`=== Totals across ${CASES.length} cases ===`);
   console.log(`  LLM total latency:   ${totalLlmMs.toFixed(0)}ms`);
   console.log(`  Local total latency: ${totalLocalMs.toFixed(3)}ms`);
   console.log(`  Overall speedup:     ${overallSpeedup.toFixed(0)}x`);

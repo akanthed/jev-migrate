@@ -29,6 +29,21 @@ const expectations: Expectation[] = [
     minConfidence: 0.8,
     expectedTypes: ["routing", "classification"],
   },
+  { file: "gemini-scoring.ts", minDetections: 1, minConfidence: 0.8, expectedTypes: ["scoring"] },
+  {
+    file: "cohere_classification.py",
+    minDetections: 1,
+    minConfidence: 0.8,
+    expectedTypes: ["classification"],
+  },
+  { file: "mistral-boolean.ts", minDetections: 1, minConfidence: 0.8, expectedTypes: ["boolean"] },
+  { file: "ollama-routing.py", minDetections: 1, minConfidence: 0.8, expectedTypes: ["routing"] },
+  {
+    file: "raw-http-classification.ts",
+    minDetections: 1,
+    minConfidence: 0.8,
+    expectedTypes: ["classification"],
+  },
 ];
 
 let failures = 0;
