@@ -12,16 +12,17 @@ export interface Detection {
   provider: string;
 }
 
-const CALL_PATTERN = /(\w+)\.(chat\.completions\.create|messages\.create)\s*\(/g;
+const CALL_PATTERN = /(\w+)\.(chat\.completions\.create|messages\.create|ChatCompletion\.create)\s*\(/g;
 
 const ROUTING_KEYWORDS = /\b(rout(?:e|ing|er)|dispatch(?:ing)?|assign(?:ed|ing|ment)?|queue(?:d|ing)?|department|team)\b/i;
 const CLASSIFICATION_KEYWORDS = /\b(classify|classif(?:ication|ies|ied)|categorize|decide|decision|determine)\b/i;
 const SCORING_KEYWORDS = /\b(score|scoring|rating|rank(?:ing)?|priority|urgency)\b/i;
 const BOOLEAN_KEYWORDS = /\b(is_\w+|should_\w+|has_\w+|can_\w+|needs_\w+)\b/i;
 
-const TEMP_ZERO = /temperature\s*:\s*0(?![.\d])/;
-const MAX_TOKENS = /max_tokens\s*:\s*(\d+)/;
-const JSON_PARSE = /JSON\.parse/;
+// [:=] covers both JS object literals (temperature: 0) and Python kwargs (temperature=0)
+const TEMP_ZERO = /temperature\s*[:=]\s*0(?![.\d])/;
+const MAX_TOKENS = /max_tokens\s*[:=]\s*(\d+)/;
+const JSON_PARSE = /JSON\.parse|json\.loads/;
 const SCALE_1_5 = /\b1\s*(?:-|to)\s*5\b/i;
 const SCALE_0_100 = /\b0\s*(?:-|to)\s*100\b/i;
 const YES_NO = /\byes\s*\/\s*no\b|\btrue\s*\/\s*false\b/i;

@@ -23,6 +23,12 @@ const expectations: Expectation[] = [
     minConfidence: 0.8,
     expectedTypes: ["routing", "classification", "scoring", "boolean"],
   },
+  {
+    file: "ticket_routing.py",
+    minDetections: 2,
+    minConfidence: 0.8,
+    expectedTypes: ["routing", "classification"],
+  },
 ];
 
 let failures = 0;

@@ -5,6 +5,7 @@ import { Command } from "commander";
 import { scan } from "./scanner";
 import { detectAll } from "./detector";
 import { buildSummary, formatReport } from "./reporter";
+import { buildConversions } from "./converter";
 
 function reportRoot(root: string): string {
   return fs.statSync(root).isFile() ? path.dirname(root) : root;
@@ -43,7 +44,7 @@ program
 
 program
   .command("convert")
-  .description("(preview) Show what a converted call would look like")
+  .description("Preview before/after Jev call scaffolds for detected LLM calls (does not write files)")
   .argument("[dir]", "directory to scan", ".")
   .action((dir: string) => {
     const root = path.resolve(dir);
@@ -53,10 +54,22 @@ program
       console.log("No convertible LLM calls found.");
       return;
     }
-    for (const d of detections) {
-      const rel = path.relative(reportRoot(root), d.file).split(path.sep).join("/");
-      console.log(`${rel}:${d.line} [${Math.round(d.confidence * 100)}%] ${d.type} -> ${d.jevTarget}`);
+    const conversions = buildConversions(detections);
+    for (const c of conversions) {
+      const rel = path
+        .relative(reportRoot(root), c.detection.file)
+        .split(path.sep)
+        .join("/");
+      console.log(`\n${rel}:${c.detection.line} [${Math.round(c.detection.confidence * 100)}%] ${c.detection.type} -> ${c.detection.jevTarget}`);
+      console.log(`  before: ${c.original}`);
+      console.log(`  after:`);
+      for (const line of c.replacement.split("\n")) {
+        console.log(`    ${line}`);
+      }
     }
+    console.log(
+      "\nThese are scaffolds, not a safe drop-in rewrite. Fill in options/input from your original prompt before replacing the call."
+    );
   });
 
 program.parse(process.argv);
