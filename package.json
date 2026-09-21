@@ -1,7 +1,7 @@
 {
   "name": "jev-migrate",
   "version": "0.1.0",
-  "description": "Scan codebase for LLM routing/classification/scoring/boolean calls and suggest TypeSafe Jev conversions",
+  "description": "Scan your TS/JS/Python codebase for LLM calls that are secretly routing, classification, scoring, or boolean decisions - and see what converting them to TypeSafe Jev would save (benchmarked: up to 3000x faster, ~100% cheaper).",
   "main": "dist/cli.js",
   "bin": {
     "jev-migrate": "dist/cli.js"
@@ -12,9 +12,36 @@
     "test": "ts-node test/run.ts",
     "start": "ts-node src/cli.ts"
   },
-  "keywords": ["llm", "openai", "anthropic", "migration", "cli"],
+  "keywords": [
+    "llm",
+    "openai",
+    "anthropic",
+    "groq",
+    "gpt-4",
+    "claude",
+    "migration",
+    "cli",
+    "llm-cost-optimization",
+    "llmops",
+    "ai-tools",
+    "code-scanner",
+    "static-analysis",
+    "prompt-engineering",
+    "cost-reduction",
+    "latency",
+    "classification",
+    "structured-output"
+  ],
   "author": "",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/akanthed/jev-migrate.git"
+  },
+  "homepage": "https://github.com/akanthed/jev-migrate#readme",
+  "bugs": {
+    "url": "https://github.com/akanthed/jev-migrate/issues"
+  },
   "dependencies": {
     "commander": "^12.1.0",
     "chalk": "^4.1.2"

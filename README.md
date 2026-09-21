@@ -1,6 +1,14 @@
 # jev-migrate
 
+[![npm version](https://img.shields.io/npm/v/jev-migrate.svg)](https://www.npmjs.com/package/jev-migrate)
+[![license](https://img.shields.io/npm/l/jev-migrate.svg)](https://github.com/akanthed/jev-migrate/blob/main/LICENSE)
+[![GitHub stars](https://img.shields.io/github/stars/akanthed/jev-migrate.svg?style=social)](https://github.com/akanthed/jev-migrate)
+
 Find the LLM calls in your codebase that are secretly just routing, classification, scoring, or yes/no decisions — and see what converting them to TypeSafe Jev would save you.
+
+```bash
+npx jev-migrate scan ./your-project
+```
 
 An LLM call like this:
 
